@@ -6,7 +6,7 @@ import (
 	"time"
 
 	authHandler "github.com/slodkiadrianek/Go-API-template/internal/auth/handler"
-	"github.com/slodkiadrianek/Go-API-template/internal/server/routes"
+	"github.com/slodkiadrianek/Go-API-template/internal/auth/routes"
 )
 
 type DependencyConfig struct {

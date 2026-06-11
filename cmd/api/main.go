@@ -13,6 +13,8 @@ import (
 	authHandler "github.com/slodkiadrianek/Go-API-template/internal/auth/handler"
 	authRepository "github.com/slodkiadrianek/Go-API-template/internal/auth/repository"
 	authService "github.com/slodkiadrianek/Go-API-template/internal/auth/service"
+	mailService "github.com/slodkiadrianek/Go-API-template/internal/mail"
+
 	"github.com/slodkiadrianek/Go-API-template/common/log"
 	"github.com/slodkiadrianek/Go-API-template/internal/server"
 	userRepository "github.com/slodkiadrianek/Go-API-template/internal/user/repository"
@@ -115,7 +117,7 @@ func main() {
 	}
 
 	authenticationMiddleware := middleware.NewAuthenticationMiddleware(accessTokenSecret, refreshTokenSecret, loggerService, cacheService)
-	emailService := authService.NewEmailService(hostEmail, passwordEmail, loggerService)
+	emailService := mailService.NewEmailService(hostEmail, passwordEmail, loggerService)
 	userRepository := userRepository.NewUserRepository(loggerService, db.DBConnection)
 	authRepository := authRepository.NewAuthRepository(loggerService, db.DBConnection)
 	authService := authService.NewAuthService(loggerService, userRepository, authRepository, authenticationMiddleware, emailService)
