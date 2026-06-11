@@ -29,8 +29,8 @@ type emailService interface {
 }
 
 type userRepository interface {
-	RegisterUser(ctx context.Context, user authDTO.CreateUser, hashedPassword []byte) error
-	FindUserByEmail(ctx context.Context, email string) (userModel.User, error)
+	Create(ctx context.Context, user authDTO.CreateUser, hashedPassword []byte) error
+	FindByEmail(ctx context.Context, email string) (userModel.User, error)
 }
 
 type AuthService struct {
@@ -52,7 +52,7 @@ func NewAuthService(loggerService commonInterfaces.Logger, userRepository userRe
 }
 
 func (as *AuthService) Register(ctx context.Context, user authDTO.CreateUser) error {
-	userFromDB, err := as.userRepository.FindUserByEmail(ctx, user.Email)
+	userFromDB, err := as.userRepository.FindByEmail(ctx, user.Email)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func (as *AuthService) Register(ctx context.Context, user authDTO.CreateUser) er
 		return err
 	}
 
-	err = as.userRepository.RegisterUser(ctx, user, hashedPassword)
+	err = as.userRepository.Create(ctx, user, hashedPassword)
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (as *AuthService) Register(ctx context.Context, user authDTO.CreateUser) er
 }
 
 func (as *AuthService) Login(ctx context.Context, loginData authDTO.LoginUser, ipAddress, deviceInfo string) (string, []byte, error) {
-	userFromDB, err := as.userRepository.FindUserByEmail(ctx, loginData.Email)
+	userFromDB, err := as.userRepository.FindByEmail(ctx, loginData.Email)
 	if err != nil {
 		return "", nil, err
 	}

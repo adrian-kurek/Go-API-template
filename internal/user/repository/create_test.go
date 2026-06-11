@@ -11,7 +11,7 @@ import (
 	authDTO "github.com/slodkiadrianek/Go-API-template/internal/auth/DTO"
 )
 
-func TestRegister(t *testing.T) {
+func TestCreate(t *testing.T) {
 	type args struct {
 		title     string
 		setupMock func() (*sql.DB, context.Context)
@@ -77,7 +77,7 @@ func TestRegister(t *testing.T) {
 
 	for _, testScenario := range testScenarios {
 		t.Run(testScenario.title, func(t *testing.T) {
-			loggerService := setupAuthRepositoryDependencies()
+			loggerService := setupUserRepositoryDependencies()
 			user := authDTO.CreateUser{
 				Username:        "joeDoe",
 				Email:           "joedoe@gmail.com",
@@ -85,8 +85,8 @@ func TestRegister(t *testing.T) {
 				ConfirmPassword: "zaq1@#$rfvbgt5",
 			}
 			db, ctx := testScenario.setupMock()
-			authRepository := NewAuthRepository(loggerService, db)
-			err := authRepository.RegisterUser(ctx, user, []byte("test"))
+			authRepository := NewUserRepository(loggerService, db)
+			err := authRepository.Create(ctx, user, []byte("test"))
 
 			if (err != nil) != testScenario.wantErr {
 				t.Errorf("Register() error = %v, wantErr = %v", err, testScenario.wantErr)

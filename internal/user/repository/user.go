@@ -24,7 +24,7 @@ func NewUserRepository(loggerService commonInterfaces.Logger, db *sql.DB) *UserR
 	}
 }
 
-func (ur *UserRepository) RegisterUser(ctx context.Context, user authDTO.CreateUser, hashedPassword []byte) error {
+func (ur *UserRepository) Create(ctx context.Context, user authDTO.CreateUser, hashedPassword []byte) error {
 	query := `INSERT INTO users (email,username,password,created_at) VALUES ($1,$2,$3,$4)`
 
 	stmt, err := ur.db.PrepareContext(ctx, query)
@@ -59,7 +59,7 @@ func (ur *UserRepository) RegisterUser(ctx context.Context, user authDTO.CreateU
 	return nil
 }
 
-func (ur *UserRepository) FindUserByEmail(ctx context.Context, email string) (model.User, error) {
+func (ur *UserRepository) FindByEmail(ctx context.Context, email string) (model.User, error) {
 	query := "SELECT id,email, username,password,email_verified,created_at FROM USERS WHERE email = $1"
 	stmt, err := ur.db.PrepareContext(ctx, query)
 	if err != nil {

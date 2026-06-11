@@ -8,7 +8,6 @@ import (
 
 	commonErrors "github.com/slodkiadrianek/Go-API-template/common/errors"
 	commonInterfaces "github.com/slodkiadrianek/Go-API-template/common/interfaces"
-	authDTO "github.com/slodkiadrianek/Go-API-template/internal/auth/DTO"
 	authModel "github.com/slodkiadrianek/Go-API-template/internal/auth/model"
 )
 
@@ -24,41 +23,6 @@ func NewAuthRepository(loggerService commonInterfaces.Logger, db *sql.DB) *AuthR
 		loggerService: loggerService,
 		db:            db,
 	}
-}
-
-func (ar *AuthRepository) RegisterUser(ctx context.Context, user authDTO.CreateUser, hashedPassword []byte) error {
-	query := `INSERT INTO users (email,username,password,created_at) VALUES ($1,$2,$3,$4)`
-
-	stmt, err := ar.db.PrepareContext(ctx, query)
-	if err != nil {
-		ar.loggerService.Error(commonErrors.FailedToPrepareQuery, map[string]string{
-			"query": query,
-			"error": err.Error(),
-		})
-		return err
-	}
-	defer func() {
-		if closeErr := stmt.Close(); closeErr != nil {
-			ar.loggerService.Error(commonErrors.FailedToCloseStatement, closeErr)
-		}
-	}()
-
-	timestamp := time.Now()
-
-	_, err = stmt.ExecContext(ctx, user.Email, user.Username, hashedPassword, timestamp)
-	if err != nil {
-		ar.loggerService.Error(commonErrors.FailedToExecuteInsertQuery, map[string]any{
-			"query": query,
-			"args": map[string]string{
-				"username": user.Username,
-				"email":    user.Email,
-			},
-			"error": err,
-		})
-		return err
-	}
-
-	return nil
 }
 
 func (ar *AuthRepository) InsertRefreshToken(ctx context.Context, ipAddress, deviceInfo, refreshToken string, userID int) error {
