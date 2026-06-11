@@ -4,31 +4,33 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"regexp"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/lib/pq"
-	authDTO "github.com/slodkiadrianek/Go-API-template/internal/auth/DTO"
 )
-
-func TestCreate(t *testing.T) {
+func TestFindByEmail(t *testing.T) {
 	type args struct {
 		title     string
 		setupMock func() (*sql.DB, context.Context)
 		wantErr   bool
 		err       error
 	}
-
 	testScenarios := []args{
 		{
 			title: "with proper data",
 			setupMock: func() (*sql.DB, context.Context) {
 				db, mock, _ := sqlmock.New()
 				ctx := context.Background()
-				mock.ExpectPrepare("INSERT INTO users").
-					ExpectExec().
-					WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
-					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectPrepare(regexp.QuoteMeta("SELECT id,email, username,password,email_verified,created_at,updated_at FROM USERS WHERE email = $1")).
+				ExpectQuery().
+				WithArgs(sqlmock.AnyArg()).
+				WillReturnRows(
+					sqlmock.NewRows([]string{"id", "email", "username", "password", "email_verified", "created_at", "updated_at"}).
+						AddRow(1, "test@example.com", "testuser", "hashedpass", true, time.Now(), time.Now()),
+				)
 				return db, ctx
 			},
 			wantErr: false,
@@ -39,7 +41,7 @@ func TestCreate(t *testing.T) {
 			setupMock: func() (*sql.DB, context.Context) {
 				db, mock, _ := sqlmock.New()
 				ctx := context.Background()
-				mock.ExpectPrepare("INSERT INTO users").
+				mock.ExpectPrepare(regexp.QuoteMeta("SELECT id,email, username,password,email_verified,created_at,updated_at FROM USERS WHERE email = $1")).
 					WillReturnError(errors.New("failed to prepare sql query"))
 				return db, ctx
 			},
@@ -47,17 +49,30 @@ func TestCreate(t *testing.T) {
 			err:     errors.New("failed to prepare sql query"),
 		},
 		{
-			title: "duplicate email",
+			title: "failed to execute",
 			setupMock: func() (*sql.DB, context.Context) {
 				db, mock, _ := sqlmock.New()
 				ctx := context.Background()
-				mock.ExpectPrepare("INSERT INTO users").
-					ExpectExec().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
-					WillReturnError(&pq.Error{Code: "23505", Message: "duplicate key value"})
+				mock.ExpectPrepare(regexp.QuoteMeta("SELECT id,email, username,password,email_verified,created_at,updated_at FROM USERS WHERE email = $1")).
+					ExpectQuery().WithArgs(sqlmock.AnyArg()).
+					WillReturnError(&pq.Error{Code: "23505", Message: "failed to execute the query"})
 				return db, ctx
 			},
 			wantErr: true,
-			err:     &pq.Error{Code: "23505", Message: "duplicate key value"},
+			err:     &pq.Error{Code: "23505", Message: "failed to execute the query"},
+		},
+		{
+			title: "user not found",
+			setupMock: func() (*sql.DB, context.Context) {
+				db, mock, _ := sqlmock.New()
+				ctx := context.Background()
+				mock.ExpectPrepare(regexp.QuoteMeta("SELECT id,email, username,password,email_verified,created_at,updated_at FROM USERS WHERE email = $1")).
+					ExpectQuery().WithArgs(sqlmock.AnyArg()).
+				WillReturnError(sql.ErrNoRows)				
+				return db, ctx
+			},
+			wantErr: false,
+			err:     nil,
 		},
 		{
 			title: "context cancelled",
@@ -65,8 +80,8 @@ func TestCreate(t *testing.T) {
 				db, mock, _ := sqlmock.New()
 				ctx, cancel := context.WithCancel(context.Background())
 				cancel()
-				mock.ExpectPrepare("INSERT INTO users").
-					ExpectExec().WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+				mock.ExpectPrepare(regexp.QuoteMeta("SELECT id,email, username,password,email_verified,created_at,updated_at FROM USERS WHERE email = $1")).
+					ExpectQuery().WithArgs(sqlmock.AnyArg()).
 					WillReturnError(context.Canceled)
 				return db, ctx
 			},
@@ -78,15 +93,9 @@ func TestCreate(t *testing.T) {
 	for _, testScenario := range testScenarios {
 		t.Run(testScenario.title, func(t *testing.T) {
 			loggerService := setupUserRepositoryDependencies()
-			user := authDTO.CreateUser{
-				Username:        "joeDoe",
-				Email:           "joedoe@gmail.com",
-				Password:        "zaq1@#$rfvbgt5",
-				ConfirmPassword: "zaq1@#$rfvbgt5",
-			}
 			db, ctx := testScenario.setupMock()
 			authRepository := NewUserRepository(loggerService, db)
-			err := authRepository.Create(ctx, user, []byte("test"))
+			_,err := authRepository.FindByEmail(ctx, "joedoe@gmail.com")
 
 			if (err != nil) != testScenario.wantErr {
 				t.Errorf("Register() error = %v, wantErr = %v", err, testScenario.wantErr)
